@@ -51,13 +51,14 @@ router.get('/my-snacks', authMiddleware, async (req, res) => {
 // Get All Snacks (Unprotected)
 router.get('/', async (req, res) => {
     try {
-        const snacks = await Snack.find().populate('enlistedBy', 'name email');
+        const snacks = await Snack.find({ quantity: { $gt: 0 } });
         res.json(snacks);
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
+
 
 // Update Snack (Protected)
 router.put('/:id', authMiddleware, async (req, res) => {
