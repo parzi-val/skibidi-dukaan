@@ -14,7 +14,7 @@ const ProductCard = ({
 }) => {
   return (
     <Card className="w-72 overflow-hidden transition-all duration-200 hover:shadow-lg">
-      <div className="relative h-48 overflow-hidden bg-gray-100">
+      <div className="relative h-30 md:h-48 overflow-hidden bg-gray-100">
         <img
           src={imgSrc}
           alt={name}
@@ -22,7 +22,7 @@ const ProductCard = ({
         />
       </div>
       
-      <CardHeader className="p-4 pb-0">
+      <CardHeader className="md:p-4 pb-0">
         <div className="flex items-start justify-between">
           <h3 className="text-xl font-semibold line-clamp-2">{name}</h3>
           <Badge variant={isDeliverable ? "default" : "secondary"} className="ml-2 text-sm ">
@@ -31,13 +31,13 @@ const ProductCard = ({
         </div>
       </CardHeader>
       
-      <CardContent className="p-4 pt-2">
+      <CardContent className="md:p-4 pt-2">
         <p className="text-xl font-bold text-gray-900">
         ₹{typeof price === 'number' ? price.toFixed(2) : price}
         </p>
       </CardContent>
       
-      <CardFooter className="p-4 pt-0">
+      <CardFooter className="md:p-4 pt-0">
         <Button 
           onClick={onAddToCart} 
           className="w-full"
