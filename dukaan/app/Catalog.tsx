@@ -54,7 +54,7 @@ const Catalog = () => {
       ];
   return (
     <div className="min-h-screen flex flex-col justify-center items-center w-full">
-        <h2 className="text-4xl font-semibold pl-8 mb-8">Available now</h2>
+        <h2 className="text-4xl font-semibold pl-8 mb-8" id="catalog">Available now</h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {products.map((product, index) => (
             <ProductCard

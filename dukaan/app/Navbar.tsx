@@ -23,7 +23,7 @@ export default function Navbar() {
       
       {/* Desktop Navigation */}
       <div className="hidden md:flex md:gap-6">
-        <Link href="/products" className="text-gray-600 hover:text-gray-900 transition">
+        <Link href="/#catalog" className="text-gray-600 hover:text-gray-900 transition">
           Browse
         </Link>
         <Link href="/sell" className="text-gray-600 hover:text-gray-900 transition">
@@ -47,7 +47,7 @@ export default function Navbar() {
               <Link href="/login">Profile</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link href="/orders">Orders</Link>
+              <Link href="/profile">Orders</Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link href="/logout">Logout</Link>
@@ -72,7 +72,7 @@ export default function Navbar() {
           </SheetTrigger>
           <SheetContent side="right">
             <div className="flex flex-col ml-4 gap-6 mt-10">
-              <Link href="/products" className="text-lg font-medium">
+              <Link href="/#catalog" className="text-lg font-medium">
                 <SheetClose className="w-full text-left">Browse</SheetClose>
               </Link>
               <Link href="/sell" className="text-lg font-medium">
@@ -82,7 +82,7 @@ export default function Navbar() {
               <Link href="/login" className="text-lg font-medium">
                 <SheetClose className="w-full text-left">Profile</SheetClose>
               </Link>
-              <Link href="/orders" className="text-lg font-medium">
+              <Link href="/profile" className="text-lg font-medium">
                 <SheetClose className="w-full text-left">Orders</SheetClose>
               </Link>
               <Link href="/logout" className="text-lg font-medium">
