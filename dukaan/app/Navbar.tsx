@@ -1,5 +1,5 @@
 'use client';
-
+import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -17,8 +17,14 @@ export default function Navbar() {
 
   return (
     <nav className="flex justify-between items-center p-4 rounded-lg">
-      <Link href="/" className="text-xl font-bold text-persian">
-        SkibidiDukaan
+      <Link href="/" className=" ">
+        <Image 
+        alt="SkibidiDukaan"
+        src="/logo.png"
+        height={1000}
+        width={1000}
+        className="w-20 h-20"
+        />
       </Link>
       
       {/* Desktop Navigation */}
