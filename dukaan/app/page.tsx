@@ -1,20 +1,79 @@
 import Image from "next/image";
 import Navbar from "./Navbar";
+import Hero from "./Hero";
+import { Button } from "@/components/ui/button";
+import ProductCard from "./ProductCard";
+
 export default function Home() {
+  const products = [
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Burger",
+      price: 250,
+      imgSrc: "/panini.jpg",
+      isDeliverable: false,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+    {
+      name: "Panini",
+      price: 390,
+      imgSrc: "/panini.jpg",
+      isDeliverable: true,
+    },
+  ];
+
   return (
-    <div className="h-full font-[family-name:var(--font-geist-sans)] w-[85vw]">
+    <div className="h-full font-[family-name:var(--font-raleway)] w-[85vw]">
       <Navbar />
-      <div className="min-h-[70vh] w-full flex justify-center flex-row items-center">
-        <h1 className="text-[#090909] text-6xl font-medium text-center  ">A place to make money.<br></br> Or get snacks.</h1>
-        <Image 
-        src="/hero.png"
-        alt="hero"
-        width={1500}
-        height={1500}
-        className="w-1/3 h-1/3"
-        />
+      <Hero />
+      <div className="min-h-screen">
+        <h2 className="text-4xl font-semibold pl-8 mb-8">Available now</h2>
+        <div className="grid grid-cols-4 gap-4">
+          {products.map((product, index) => (
+            <ProductCard
+              key={index}
+              name={product.name}
+              price={product.price}
+              imgSrc={product.imgSrc}
+              isDeliverable={product.isDeliverable}
+            />
+          ))}
+        </div>
       </div>
-      
     </div>
   );
 }
