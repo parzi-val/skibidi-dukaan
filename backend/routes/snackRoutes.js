@@ -1,0 +1,115 @@
+const express = require('express');
+const Snack = require('../models/Snack');
+const authMiddleware = require('../middleware/authMiddleware');
+
+const router = express.Router();
+
+
+// Create a snack (Protected)
+router.post('/create', authMiddleware, async (req, res) => {
+    try {
+        const { name, description, price, quantity } = req.body;
+        
+        // Ensure all required fields are present
+        if (!name || !price || !quantity) {
+            return res.status(400).json({ message: 'Name, price, and quantity are required' });
+        }
+
+        // Get user ID from token
+        const userId = req.user._id; // This should be set by authMiddleware
+
+        // Create and save the snack
+        const newSnack = new Snack({
+            name,
+            description,
+            price,
+            quantity,
+            enlistedBy: userId // Assign the logged-in user's ID
+        });
+
+        await newSnack.save();
+        res.status(201).json({ message: 'Snack created successfully', snack: newSnack });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+
+// Get All Snacks
+router.get('/my-snacks', authMiddleware, async (req, res) => {
+    try {
+        const snacks = await Snack.find().populate('enlistedBy', 'name email');
+        res.json(snacks);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Get All Snacks (Unprotected)
+router.get('/', async (req, res) => {
+    try {
+        const snacks = await Snack.find().populate('enlistedBy', 'name email');
+        res.json(snacks);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Update Snack (Protected)
+router.put('/:id', authMiddleware, async (req, res) => {
+    const { name, description, price, quantity } = req.body;
+
+    try {
+        // Check if snack exists
+        const snack = await Snack.findById(req.params.id);
+        if (!snack) {
+            return res.status(404).json({ message: 'Snack not found' });
+        }
+        console.log(snack.enlistedBy.toString());
+        console.log(req.user._id.toString());
+        // Ensure only the user who enlisted the snack can update it
+        if (snack.enlistedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'You do not have permission to update this snack' });
+        }
+
+        // Update the snack
+        snack.name = name || snack.name;
+        snack.description = description || snack.description;
+        snack.price = price || snack.price;
+        snack.quantity = quantity || snack.quantity;
+
+        await snack.save();
+        res.json({ message: 'Snack updated successfully', snack });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+// Delete Snack (Protected)
+router.delete('/:id', authMiddleware, async (req, res) => {
+    try {
+        // Check if snack exists
+        const snack = await Snack.findById(req.params.id);
+        if (!snack) {
+            return res.status(404).json({ message: 'Snack not found' });
+        }
+
+        // Ensure only the user who enlisted the snack can delete it
+        if (snack.enlistedBy.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ message: 'You do not have permission to delete this snack' });
+        }
+
+        await Snack.deleteOne({ _id: req.params.id })
+        res.json({ message: 'Snack deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server Error' });
+    }
+});
+
+module.exports = router;
