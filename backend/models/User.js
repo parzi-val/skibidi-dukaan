@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true, unique: true },
     password: { type: String, required: true }, // Hashed password storage
     createdAt: { type: Date, default: Date.now },
-    roomNo: { type: String},
+    roomNo: { type: String },
+    phoneNo: { type: String }
 });
 
 // Pre-save hook to hash password before saving

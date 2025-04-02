@@ -1,16 +1,14 @@
 const express = require('express');
 const Snack = require('../models/Snack');
 const authMiddleware = require('../middleware/authMiddleware');
-const multer = require('multer');
-
 const router = express.Router();
 
-const storage = multer.memoryStorage(); // Store in memory (change if using disk)
-const upload = multer({ storage });
+const upload = require('../middleware/uploadMiddleware');
 
 // Create a snack (Protected)
-router.post('/create', authMiddleware,upload.none(), async (req, res) => {
+router.post('/create', authMiddleware,upload.single('image'), async (req, res) => {
     try {
+        console.log("Uploaded File: ", req.file);
         const { name, description, price, quantity, deliverable } = req.body;
         
         // Ensure all required fields are present
@@ -28,7 +26,8 @@ router.post('/create', authMiddleware,upload.none(), async (req, res) => {
             price,
             quantity,
             deliverable,
-            enlistedBy: userId // Assign the logged-in user's ID
+            enlistedBy: userId, // Assign the logged-in user's ID
+            imageUrl: req.file.path
         });
 
         await newSnack.save();
@@ -41,21 +40,12 @@ router.post('/create', authMiddleware,upload.none(), async (req, res) => {
 });
 
 
-// Get All Snacks
-router.get('/my-snacks', authMiddleware, async (req, res) => {
-    try {
-        const snacks = await Snack.find().populate('enlistedBy', 'name email');
-        res.json(snacks);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
 // Get All Snacks (Unprotected)
 router.get('/', async (req, res) => {
     try {
-        const snacks = await Snack.find({ quantity: { $gt: 0 } });
+        const snacks = await Snack.find({ quantity: { $gt: 0 } })
+            .populate('enlistedBy', 'name'); // Populate enlistedBy with only the name field
+        
         res.json(snacks);
     } catch (error) {
         console.error(error);
