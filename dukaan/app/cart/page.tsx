@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Navbar from '../Navbar';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -8,10 +8,33 @@ import { Trash2, Plus, Minus, ShoppingBag } from "lucide-react";
 import Image from 'next/image';
 import { useCart } from '@/context/cart'; // Import the cart context
 import Link from 'next/link';
+import axios from 'axios';
+import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import CheckoutSuccessModal from '../CheckoutSuccessModal';
+
 
 const Cart = () => {
   // Get cart items and functions from context
-  const { cartItems, updateQuantity, removeFromCart } = useCart();
+  const { cartItems, updateQuantity, removeFromCart, clearCart } = useCart();
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [orderResult, setOrderResult] = useState(null);
+  // State for checkout modal
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [customerInfo, setCustomerInfo] = useState({
+    name: '',
+    phoneNumber: '',
+    roomNumber: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -22,9 +45,114 @@ const Cart = () => {
   // Check if cart is empty
   const isCartEmpty = cartItems.length === 0;
 
+  // Handle input changes in the checkout form
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setCustomerInfo(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  const handleQuantityChange = async (itemId, newQuantity) => {
+    if (newQuantity < 1) return;
+    
+    // try {
+    //   // Check with backend if the requested quantity is available
+    //   const response = await axios.post(
+    //     `${process.env.NEXT_PUBLIC_API_URL}/cart/`,
+    //     {
+    //       productId: itemId,
+    //       quantity: newQuantity
+    //     }
+    //   );
+      
+    //   // If validation passes, update the quantity in the cart
+    //   if (response.data.valid) {
+    //     updateQuantity(itemId, newQuantity);
+    //   } else {
+
+    //     toast.error(response.data.message || "Requested quantity not available", {
+    //       description: "Please try a smaller quantity"
+    //     });
+    //   }
+    // } catch (error) {
+    //   console.error("Error validating quantity:", error);
+    //   toast.error("Could not validate product quantity", {
+    //     description: "Please try again later"
+    //   });
+    // }
+  };
+  
+
+  // Function to handle checkout process
+  const handleCheckout = async (e) => {
+    e?.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      // Prepare order data
+      const orderData = {
+        customerInfo,
+        items: cartItems,
+        totalAmount: total
+      };
+      console.log(JSON.stringify(orderData))
+      // Send to backend
+      
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/cart/checkout`, 
+        orderData,
+        {
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Handle successful order
+      toast.success("Order placed successfully!", {
+        description: "Leave a review!"
+      });
+      setOrderResult(response.data);
+      
+      // Close checkout modal and open success modal
+      setIsCheckoutModalOpen(false);
+      setIsSuccessModalOpen(true);
+      // Clear the cart
+      clearCart();
+      
+      // Close the modal
+      setIsCheckoutModalOpen(false);
+      
+    } catch (error) {
+      console.error('Checkout error:', error);
+      toast.error("Failed to place order", {
+        description: error.response?.data?.message || "Please try again later."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Open checkout modal
+  const openCheckoutModal = () => {
+    if (isCartEmpty) {
+      toast.error("Your cart is empty", {
+        description: "Add some items before checking out."
+      });
+      return;
+    }
+    setIsCheckoutModalOpen(true);
+  };
+
   return (
     <div className='h-full font-[family-name:var(--font-raleway)] w-[85vw]'>
       <Navbar />
+      <CheckoutSuccessModal 
+        open={isSuccessModalOpen}
+        onOpenChange={setIsSuccessModalOpen}
+        orderData={orderResult || { deliverable: [], nonDeliverable: [] }}
+      />
       <h2 className="text-6xl font-semibold pl-8 mt-8 mb-8">Your Cart</h2>
 
       {isCartEmpty ? (
@@ -64,20 +192,21 @@ const Cart = () => {
                   
                   <div className="flex justify-between items-center mt-4">
                     <div className="flex items-center border rounded-md">
-                      <button 
-                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= 1}
-                      >
-                        <Minus size={16} />
-                      </button>
-                      <span className="px-3">{item.quantity}</span>
-                      <button 
-                        className="px-2 py-1 text-gray-500 hover:text-gray-700"
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      >
-                        <Plus size={16} />
-                      </button>
+                    <button 
+                      className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                      disabled={item.quantity <= 1}
+                    >
+                      <Minus size={16} />
+                    </button>
+                    <span className="px-3">{item.quantity}</span>
+                    <button 
+                      className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                    >
+                      <Plus size={16} />
+                    </button>
+
                     </div>
                     
                     <button 
@@ -118,7 +247,9 @@ const Cart = () => {
                 </div>
               </div>
               
-              <Button className="w-full mt-6" onClick={handleCheckout}>Proceed to Checkout</Button>
+              <Button className="w-full mt-6" onClick={openCheckoutModal}>
+                Proceed to Checkout
+              </Button>
               <Link href="/#catalog">
                 <Button variant="outline" className="w-full mt-3">Continue Shopping</Button>
               </Link>
@@ -126,57 +257,79 @@ const Cart = () => {
           </div>
         </div>
       )}
+
+      {/* Checkout Modal */}
+      <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Complete Your Order</DialogTitle>
+          </DialogHeader>
+          
+          <form onSubmit={handleCheckout} className="space-y-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input 
+                id="name" 
+                name="name"
+                value={customerInfo.name} 
+                onChange={handleInputChange} 
+                placeholder="Enter your full name" 
+                required 
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="phoneNumber">Phone Number</Label>
+              <Input 
+                id="phoneNumber" 
+                name="phoneNumber"
+                value={customerInfo.phoneNumber} 
+                onChange={handleInputChange} 
+                placeholder="Enter your phone number" 
+                required 
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="roomNumber">Room Number</Label>
+              <Input 
+                id="roomNumber" 
+                name="roomNumber"
+                value={customerInfo.roomNumber} 
+                onChange={handleInputChange} 
+                placeholder="Enter your room number" 
+                required 
+              />
+            </div>
+            
+            <div className="pt-4 border-t">
+              <div className="flex justify-between font-semibold">
+                <span>Total Amount:</span>
+                <span>₹{total.toFixed(2)}</span>
+              </div>
+            </div>
+            
+            <DialogFooter className="pt-4">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCheckoutModalOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Place Order"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
-};
-
-// Function to handle checkout process
-const handleCheckout = async () => {
-  // Get the token if user is logged in
-  const token = getCookie('token');
-  
-  if (!token) {
-    // If user is not logged in, redirect to login page
-    // You can use next/navigation for this
-    window.location.href = '/login?redirect=checkout';
-    return;
-  }
-  
-  // If user is logged in, proceed with checkout
-  // Here you would typically send the cart data to your backend
-  try {
-    // Get cart items from localStorage
-    const cartItems = JSON.parse(localStorage.getItem('cart') || '[]');
-    
-    // Send to backend
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/checkout`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ items: cartItems })
-    });
-    
-    if (response.ok) {
-      // Redirect to order confirmation page
-      window.location.href = '/order-confirmation';
-    } else {
-      throw new Error('Checkout failed');
-    }
-  } catch (error) {
-    console.error('Checkout error:', error);
-    // Show error message
-  }
-};
-
-// Helper function to get cookie
-const getCookie = (name) => {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop().split(';').shift();
-  return null;
 };
 
 export default Cart;

@@ -36,8 +36,11 @@ export default function AuthPage() {
     email: "",
     password: "",
     confirmPassword: "",
+    roomNo: "",
+    phoneNo: "",
     agreeToTerms: false
   });
+  
 
   const handleLoginSubmit = async (e:any) => {
     e.preventDefault();
@@ -75,8 +78,10 @@ export default function AuthPage() {
       const result = await registerUser({
         name: signupForm.name,
         email: signupForm.email,
-        password: signupForm.password
-      });
+        password: signupForm.password,
+        roomNo: signupForm.roomNo,
+        phoneNo: signupForm.phoneNo
+      });      
       console.log("Registration successful:", result);
       
       // Redirect to dashboard or home page
@@ -252,7 +257,29 @@ export default function AuthPage() {
                         onChange={(e) => updateSignupForm('email', e.target.value)}
                       />
                     </div>
-                    
+                    <div className="space-y-2">
+                      <Label htmlFor="roomNo">Room Number</Label>
+                      <Input 
+                        id="roomNo" 
+                        placeholder="S-322" 
+                        required
+                        value={signupForm.roomNo}
+                        onChange={(e) => updateSignupForm('roomNo', e.target.value)}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNo">Phone Number</Label>
+                      <Input 
+                        id="phoneNo" 
+                        type="tel" 
+                        placeholder="+91 9876543210" 
+                        required
+                        value={signupForm.phoneNo}
+                        onChange={(e) => updateSignupForm('phoneNo', e.target.value)}
+                      />
+                    </div>
+
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>
                       <div className="relative">

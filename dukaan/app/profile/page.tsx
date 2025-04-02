@@ -14,66 +14,71 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import Navbar from '../Navbar';
 import { PlusCircle } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AddListingModal from '../AddListingModal';
 import EditListingModal from '../EditListingModal';
+import axios from 'axios';
 const SellerProfile = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [seller, setSeller] = useState(null);
+  const [listings, setListings] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    const fetchSellerData = async () => {
+      try {
+        setIsLoading(true);
+  
+        // Retrieve the JWT token from cookies or localStorage
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('token='))
+          ?.split('=')[1];
+  
+        if (!token) {
+          setError("You must be logged in to access this page.");
+          return;
+        }
+  
+        // Make the API request with the Authorization header
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/dashboard`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        console.log(response.data)
+        // Set seller and listings data from the response
+        setSeller(response.data.seller);
+        setListings(response.data.listings);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching seller data:", err);
+        setError("Failed to load seller information. Please try again.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+  
+    fetchSellerData();
+  }, []);
+  
 
-  // Mock seller data
-  const seller = {
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    joinedDate: "April 2023",
-    avatar: "/avatar.jpg",
-    totalSales: 28,
-    totalEarnings: 12450,
-  };
+  if (isLoading) {
+    return <div className="w-[85vw] flex justify-center items-center min-h-screen">Loading...</div>;
+  }
 
-  // Mock product listings with status
-  const listings = [
-    {
-      id: 1,
-      name: "Panini",
-      price: 390,
-      imgSrc: "/panini.jpg",
-      isDeliverable: true,
-      status: "active",
-      dateAdded: "2025-03-28",
-      views: 45,
-    },
-    {
-      id: 2,
-      name: "Burger",
-      price: 250,
-      imgSrc: "/panini.jpg",
-      isDeliverable: false,
-      status: "sold",
-      dateAdded: "2025-03-15",
-      views: 112,
-      soldDate: "2025-03-30",
-    },
-    {
-      id: 3,
-      name: "Chicken Sandwich",
-      price: 320,
-      imgSrc: "/panini.jpg",
-      isDeliverable: true,
-      status: "pending",
-      dateAdded: "2025-04-01",
-      views: 12,
-    },
-    {
-      id: 4,
-      name: "Veggie Wrap",
-      price: 280,
-      imgSrc: "/panini.jpg",
-      isDeliverable: true,
-      status: "active",
-      dateAdded: "2025-03-25",
-      views: 38,
-    },
-  ];
+  if (error || !seller) {
+    return <div className="w-[85vw] text-center text-red-500 min-h-screen flex items-center justify-center">{error || "Unable to load seller information"}</div>;
+  }
+
+  if (isLoading) {
+    return <div className="w-[85vw] flex justify-center items-center min-h-screen">Loading...</div>;
+  }
+
+  if (error || !seller) {
+    return <div className="w-[85vw] text-center text-red-500 min-h-screen flex items-center justify-center">{error || "Unable to load seller information"}</div>;
+  }
 
   return (
     <div className='w-[85vw]'>
@@ -133,7 +138,7 @@ const SellerProfile = () => {
               <CardContent className="flex flex-col items-center justify-center h-full py-6">
                 <h3 className="text-xl font-medium text-primary-foreground mb-2">Total Earnings</h3>
                 <div className="text-4xl md:text-5xl font-bold text-primary-foreground">
-                  ₹{seller.totalEarnings.toLocaleString()}
+                  ₹{seller.totalAmount.toLocaleString()}
                 </div>
                 <p className="text-primary-foreground/80 mt-2 text-center">
                   From {seller.totalSales} successful sales
