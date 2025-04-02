@@ -5,6 +5,7 @@ const snackSchema = new mongoose.Schema({
     description: { type: String },
     price: { type: Number, required: true },
     quantity: { type: Number, required: true },
+    deliverable: { type: Boolean, default: true },
     enlistedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdAt: { type: Date, default: Date.now }
 });

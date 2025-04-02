@@ -1,14 +1,17 @@
 const express = require('express');
 const Snack = require('../models/Snack');
 const authMiddleware = require('../middleware/authMiddleware');
+const multer = require('multer');
 
 const router = express.Router();
 
+const storage = multer.memoryStorage(); // Store in memory (change if using disk)
+const upload = multer({ storage });
 
 // Create a snack (Protected)
-router.post('/create', authMiddleware, async (req, res) => {
+router.post('/create', authMiddleware,upload.none(), async (req, res) => {
     try {
-        const { name, description, price, quantity } = req.body;
+        const { name, description, price, quantity, deliverable } = req.body;
         
         // Ensure all required fields are present
         if (!name || !price || !quantity) {
@@ -24,6 +27,7 @@ router.post('/create', authMiddleware, async (req, res) => {
             description,
             price,
             quantity,
+            deliverable,
             enlistedBy: userId // Assign the logged-in user's ID
         });
 
