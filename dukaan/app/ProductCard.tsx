@@ -4,14 +4,27 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart } from "lucide-react";
+import { useCart } from '@/context/cart'; // Import the custom hook
 
 const ProductCard = ({ 
+  id,
   name = "Panini",
   price = 390,
   imgSrc = "/panini.jpg",
   isDeliverable = true,
-  onAddToCart = () => console.log("Added to cart")
 }) => {
+  const { addToCart } = useCart(); // Use the cart context
+  
+  const handleAddToCart = () => {
+    addToCart({
+      id,
+      name,
+      price,
+      imgSrc,
+      isDeliverable,
+    });
+  };
+
   return (
     <Card className="w-72 overflow-hidden transition-all duration-200 hover:shadow-lg">
       <div className="relative h-30 md:h-48 overflow-hidden bg-gray-100">
@@ -33,13 +46,13 @@ const ProductCard = ({
       
       <CardContent className="md:p-4 pt-2">
         <p className="text-xl font-bold text-gray-900">
-        ₹{typeof price === 'number' ? price.toFixed(2) : price}
+          ₹{typeof price === 'number' ? price.toFixed(2) : price}
         </p>
       </CardContent>
       
       <CardFooter className="md:p-4 pt-0">
         <Button 
-          onClick={onAddToCart} 
+          onClick={handleAddToCart} 
           className="w-full"
         >
           <ShoppingCart className="mr-2 h-4 w-4" /> Add to Cart

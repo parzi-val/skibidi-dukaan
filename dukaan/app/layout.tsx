@@ -22,6 +22,7 @@ export const metadata: Metadata = {
   description: "Buy stuff. Sell stuff. Simple as that. Skibidi.",
 };
 import { Toaster } from "@/components/ui/sonner"
+import { CartProvider } from '@/context/cart';
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +33,10 @@ export default function RootLayout({
       <body
         className={`${raleway.variable} antialiased bg-[#f7f7f7]  flex justify-center`}
       >
+        <CartProvider>
         {children}
+        </CartProvider>
+        
         <Toaster />
       </body>
     </html>

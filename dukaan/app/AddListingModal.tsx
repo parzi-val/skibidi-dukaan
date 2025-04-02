@@ -41,11 +41,9 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
       const token = getCookie('token');
       
       if (!token) {
-        toast({
-          title: "Authentication Error",
-          description: "You must be logged in to create a listing",
-          variant: "destructive"
-        });
+        toast.error(error.response?.data?.message || "Failed to create listing. Please try again.", {
+            description: "Error"
+          });
         return;
       }
       
@@ -76,10 +74,8 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
       // Handle successful response
       console.log("Listing created:", response.data);
       
-      toast({
-        title: "Success!",
-        description: "Your listing has been created",
-        variant: "default"
+      toast.success("Your listing has been created", {
+        description: "Success!"
       });
       
       // Reset form
@@ -96,11 +92,10 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
     } catch (error) {
       console.error("Error creating listing:", error);
       
-      toast({
-        title: "Error",
-        description: error.response?.data?.message || "Failed to create listing. Please try again.",
-        variant: "destructive"
+      toast.error(error.response?.data?.message || "Failed to create listing. Please try again.", {
+        description: "Error"
       });
+
     } finally {
       setIsSubmitting(false);
     }

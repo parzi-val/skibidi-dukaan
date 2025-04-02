@@ -1,73 +1,69 @@
-import React from 'react'
+"use client"
+import React, { useState, useEffect } from 'react';
 import ProductCard from "./ProductCard";
 import { Button } from "@/components/ui/button";
+import axios from 'axios';
+
 const Catalog = () => {
-    const products = [
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Burger",
-          price: 250,
-          imgSrc: "/panini.jpg",
-          isDeliverable: false,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-        {
-          name: "Panini",
-          price: 390,
-          imgSrc: "/panini.jpg",
-          isDeliverable: true,
-        },
-      ];
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null); // Allow string or null
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/snacks`);
+        setProducts(response.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching products:", err);
+        setError("Failed to load products. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col justify-center items-center w-full">
-        <h2 className="text-4xl font-semibold pl-8 mb-8" id="catalog">Available now</h2>
+      <h2 className="text-4xl font-semibold pl-8 mb-8" id="catalog">Available now</h2>
+      
+      {loading && <p>Loading products...</p>}
+      
+      {error && (
+        <div className="text-red-500 mb-4">
+          <p>{error}</p>
+          <Button onClick={() => window.location.reload()} className="mt-2">
+            Try Again
+          </Button>
+        </div>
+      )}
+      
+      {!loading && !error && products.length === 0 && (
+        <p>No products available at the moment.</p>
+      )}
+      
+      {!loading && !error && products.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           {products.map((product, index) => (
+            <>
             <ProductCard
-              key={index}
+              key={product._id || index}
               name={product.name}
               price={product.price}
-              imgSrc={product.imgSrc}
-              isDeliverable={product.isDeliverable}
+              imgSrc={product.imgSrc || product.imageUrl}
+              isDeliverable={product.isDeliverable || product.deliverable}
             />
+            </>
+            
           ))}
         </div>
-      </div>
-  )
-}
+      )}
+    </div>
+  );
+};
 
-export default Catalog
+export default Catalog;
