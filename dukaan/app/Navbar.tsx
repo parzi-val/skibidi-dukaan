@@ -3,6 +3,7 @@ import Image from "next/image";
 import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import AddListingModal from "./AddListingModal";
 import { 
   DropdownMenu, 
   DropdownMenuTrigger, 
@@ -13,8 +14,7 @@ import { ShoppingCart, Menu, X } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 
 export default function Navbar() {
-  const [isOpen, setIsOpen] = useState(false);
-
+  const [isModalOpen, setIsModalOpen] = useState(false);
   return (
     <nav className="flex justify-between items-center p-4 rounded-lg">
       <Link href="/" className=" ">
@@ -32,9 +32,14 @@ export default function Navbar() {
         <Link href="/#catalog" className="text-gray-600 hover:text-gray-900 transition">
           Browse
         </Link>
-        <Link href="/sell" className="text-gray-600 hover:text-gray-900 transition">
-          Sell
-        </Link>
+        
+        <AddListingModal 
+                trigger={
+                  <p className="text-gray-600 hover:text-gray-900 transition hover:cursor-pointer">Sell</p>
+                }
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+          />
       </div>
       
       <div className="hidden md:flex md:gap-3">
@@ -81,9 +86,15 @@ export default function Navbar() {
               <Link href="/#catalog" className="text-lg font-medium">
                 <SheetClose className="w-full text-left">Browse</SheetClose>
               </Link>
-              <Link href="/sell" className="text-lg font-medium">
-                <SheetClose className="w-full text-left">Sell</SheetClose>
-              </Link>
+              <AddListingModal 
+                trigger={
+                  <SheetClose className="w-full text-left">Sell</SheetClose>
+                }
+                open={isModalOpen}
+                onOpenChange={setIsModalOpen}
+              />
+                
+             
               <div className="h-px bg-gray-200 my-2"></div>
               <Link href="/login" className="text-lg font-medium">
                 <SheetClose className="w-full text-left">Profile</SheetClose>

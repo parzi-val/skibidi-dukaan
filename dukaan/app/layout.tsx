@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   title: "S-Dukaan",
   description: "Buy stuff. Sell stuff. Simple as that. Skibidi.",
 };
-
+import { Toaster } from "@/components/ui/sonner"
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +33,7 @@ export default function RootLayout({
         className={`${raleway.variable} antialiased bg-[#f7f7f7]  flex justify-center`}
       >
         {children}
+        <Toaster />
       </body>
     </html>
   );

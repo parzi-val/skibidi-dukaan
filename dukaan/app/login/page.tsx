@@ -1,5 +1,9 @@
 'use client';
 
+import { loginUser, registerUser } from '@/services/authService';
+import { useRouter } from 'next/navigation';
+
+
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -15,6 +19,11 @@ import Navbar from "../Navbar";
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState("login");
+
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
+
   
   const [loginForm, setLoginForm] = useState({
     email: "",
@@ -30,26 +39,65 @@ export default function AuthPage() {
     agreeToTerms: false
   });
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e:any) => {
     e.preventDefault();
-    console.log("Login form submitted:", loginForm);
-    // Add your authentication logic here
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const result = await loginUser(loginForm.email, loginForm.password);
+      console.log("Login successful:", result);
+      
+      // Redirect to dashboard or home page
+      router.push('/');
+    } catch (err:any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+      console.error("Login error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
 
-  const handleSignupSubmit = (e) => {
+  const handleSignupSubmit = async (e:any) => {
     e.preventDefault();
-    console.log("Signup form submitted:", signupForm);
-    // Add your registration logic here
+    setIsLoading(true);
+    setError('');
+    
+    // Validate passwords match
+    if (signupForm.password !== signupForm.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+    
+    try {
+      const result = await registerUser({
+        name: signupForm.name,
+        email: signupForm.email,
+        password: signupForm.password
+      });
+      console.log("Registration successful:", result);
+      
+      // Redirect to dashboard or home page
+      router.push('/');
+    } catch (err:any) {
+      setError(err.message || 'Registration failed. Please try again.');
+      console.error("Registration error:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  
 
-  const updateLoginForm = (field, value) => {
+  const updateLoginForm = (field:any, value:any) => {
     setLoginForm({
       ...loginForm,
       [field]: value
     });
   };
 
-  const updateSignupForm = (field, value) => {
+  const updateSignupForm = (field:any, value:any) => {
     setSignupForm({
       ...signupForm,
       [field]: value
@@ -126,6 +174,7 @@ export default function AuthPage() {
                 <TabsContent value="login">
                   <form onSubmit={handleLoginSubmit} className="space-y-4">
                     <div className="space-y-2">
+                    {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
                       <Label htmlFor="email">Email</Label>
                       <Input 
                         id="email" 
@@ -172,13 +221,16 @@ export default function AuthPage() {
                       <Label htmlFor="remember-me" className="text-sm">Remember me</Label>
                     </div>
                     
-                    <Button type="submit" className="w-full">Login</Button>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Processing..." : "Login"}
+                    </Button>
                   </form>
                 </TabsContent>
                 
                 <TabsContent value="signup">
                   <form onSubmit={handleSignupSubmit} className="space-y-4">
                     <div className="space-y-2">
+                    {error && <div className="text-red-500 text-sm mt-2">{error}</div>}
                       <Label htmlFor="name">Full Name</Label>
                       <Input 
                         id="name" 
@@ -253,7 +305,9 @@ export default function AuthPage() {
                       </Label>
                     </div>
                     
-                    <Button type="submit" className="w-full">Create Account</Button>
+                    <Button type="submit" className="w-full" disabled={isLoading}>
+                      {isLoading ? "Creating Account..." : "Create Account"}
+                    </Button>
                   </form>
                 </TabsContent>
               </CardContent>

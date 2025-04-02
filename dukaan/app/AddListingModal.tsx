@@ -1,0 +1,228 @@
+"use client"
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import Image from "next/image";
+import axios from "axios";
+import { toast } from "sonner" 
+
+const AddListingModal = ({ trigger, open, onOpenChange }) => {
+  const [name, setName] = useState("");
+  const [price, setPrice] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const [description, setDescription] = useState("");
+  const [willDeliver, setWillDeliver] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onload = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Get JWT token from cookies
+      const token = getCookie('token');
+      
+      if (!token) {
+        toast({
+          title: "Authentication Error",
+          description: "You must be logged in to create a listing",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create FormData for the API request
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('quantity', quantity.toString());
+      formData.append('deliverable', willDeliver.toString());
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+      
+      // Make API request
+      console.log(process.env.NEXT_PUBLIC_API_URL)
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/snacks/create`, 
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      // Handle successful response
+      console.log("Listing created:", response.data);
+      
+      toast({
+        title: "Success!",
+        description: "Your listing has been created",
+        variant: "default"
+      });
+      
+      // Reset form
+      setName("");
+      setPrice("");
+      setQuantity(1);
+      setDescription("");
+      setWillDeliver(false);
+      setImageFile(null);
+      setImagePreview(null);
+      
+      // Close modal
+      if (onOpenChange) onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating listing:", error);
+      
+      toast({
+        title: "Error",
+        description: error.response?.data?.message || "Failed to create listing. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Helper function to get cookie value
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
+      
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">Add New Listing</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Item Name</Label>
+            <Input 
+              id="name" 
+              value={name} 
+              onChange={(e) => setName(e.target.value)} 
+              placeholder="e.g., Panini Sandwich" 
+              required 
+            />
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="price">Price (₹)</Label>
+            <Input 
+              id="price" 
+              type="number" 
+              value={price} 
+              onChange={(e) => setPrice(e.target.value)} 
+              placeholder="e.g., 250" 
+              required 
+              min="0"
+            />
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input 
+              id="quantity" 
+              type="number" 
+              value={quantity} 
+              onChange={(e) => setQuantity(parseInt(e.target.value))} 
+              placeholder="e.g., 1" 
+              required 
+              min="1"
+            />
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description (Optional)</Label>
+            <Textarea 
+              id="description" 
+              value={description} 
+              onChange={(e) => setDescription(e.target.value)} 
+              placeholder="Describe your item..."
+              rows={3}
+            />
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <Label htmlFor="willDeliver" className="cursor-pointer">
+              Will Deliver to Room
+            </Label>
+            <Switch 
+              id="willDeliver" 
+              checked={willDeliver} 
+              onCheckedChange={setWillDeliver} 
+            />
+          </div>
+          
+          <div className="grid gap-2">
+            <Label htmlFor="image">Product Image</Label>
+            <Input 
+              id="image" 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageChange} 
+            />
+            
+            {imagePreview && (
+              <div className="mt-2 relative w-full h-40 bg-gray-100 rounded-md overflow-hidden">
+                <Image 
+                  src={imagePreview} 
+                  alt="Preview" 
+                  fill
+                  className="object-contain"
+                />
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit" 
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? "Submitting..." : "Add Listing"}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AddListingModal;
