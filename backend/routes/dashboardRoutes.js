@@ -51,7 +51,7 @@ router.get('/', authMiddleware, async (req, res) => {
             name: snack.name,
             price: snack.price,
             imgSrc: snack.imageUrl || "/default.jpg",
-            isDeliverable: snack.isDeliverable,
+            isDeliverable: snack.deliverable,
             status: "active",
             dateAdded: snack.createdAt.toISOString().split("T")[0],
             views: snack.views || 0, // Assuming you have a `views` field

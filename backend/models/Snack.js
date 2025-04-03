@@ -8,6 +8,7 @@ const snackSchema = new mongoose.Schema({
     deliverable: { type: Boolean, default: true },
     enlistedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     imageUrl: { type: String, required: true }, // Store Cloudinary image URL
+    imagePublicId: { type: String },
     createdAt: { type: Date, default: Date.now }
 });
 

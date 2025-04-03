@@ -18,6 +18,7 @@ app.use('/auth', require('./routes/auth'));
 app.use('/snacks', require('./routes/snackRoutes'));
 app.use('/cart', require('./routes/cartRoutes'));
 app.use('/dashboard', require('./routes/dashboardRoutes'));
+app.use('/otp', require('./routes/otpRoutes'));
 
 const PORT = process.env.PORT || 5000;
 

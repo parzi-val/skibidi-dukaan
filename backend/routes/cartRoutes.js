@@ -1,13 +1,19 @@
 const express = require('express');
 const Snack = require('../models/Snack');
 const User = require('../models/User');
+const Order = require('../models/Order');
+const { useMongooseAuthState } = require('../controllers/use-mongoose-auth-state');
+const { default: makeWASocket } = require('baileys');
+const P = require('pino');
+const NodeCache = require('node-cache');
+
+
 
 const router = express.Router();
 
-router.get('/validate', async (req, res) => {
+router.post('/validate', async (req, res) => {
     try {
-        const { id, quantity } = req.query;
-
+        const { id, quantity } = req.body;
         if (!id || !quantity || isNaN(quantity) || quantity < 1) {
             return res.status(400).json({ message: 'Invalid snack ID or quantity' });
         }
@@ -18,81 +24,22 @@ router.get('/validate', async (req, res) => {
         }
 
         if (quantity > snack.quantity) {
-            return res.status(400).json({ message: `Only ${snack.quantity} ${snack.name}(s) available` });
+            return res.status(400).json({ valid:false });
         }
 
-        res.json.status(200).json({ message: 'Quantity is valid', available: snack.quantity });
+        res.status(200).json({ valid:true });
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Server Error' });
     }
 });
 
-// 🛒 Direct Checkout (No Cart Model)
 router.post('/checkout', async (req, res) => {
     try {
-        const { items } = req.body;
-
-        if (!Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ message: 'Cart must have at least one item' });
-        }
-
-        let deliverable = [];
-        let nonDeliverable = [];
-
-        for (const item of items) {
-            const { id, quantity } = item;
-
-            if (!id || quantity < 1) {
-                return res.status(400).json({ message: 'Invalid snack or quantity' });
-            }
-
-            const snackExists = await Snack.findById(id).populate('enlistedBy'); // Populate enlistedBy to get name & roomNo
-            if (!snackExists) {
-                return res.status(404).json({ message: `Snack not found: ${id}` });
-            }
-
-            if (!snackExists.deliverable) {
-                snackExists.quantity -= quantity;
-                await snackExists.save();
-                
-                nonDeliverable.push({
-                    snack: snackExists.name,
-                    enlistedBy: snackExists.enlistedBy?.name || 'Unknown',
-                    roomNo: snackExists.enlistedBy?.roomNo || 'Not Available',
-                    phoneNo: snackExists.enlistedBy?.phoneNo || 'Not Available',
-                });
-            } else {
-                if (quantity > snackExists.quantity) {
-                    return res.status(400).json({ message: `Insufficient stock for ${snackExists.name}` });
-                }
-
-                // Deduct stock and add to deliverable
-                snackExists.quantity -= quantity;
-                await snackExists.save();
-
-                deliverable.push({
-                    snack: snackExists.name,
-                    quantity,
-                });
-            }
-        }
-
-        res.json({ message: 'Checkout complete', deliverable, nonDeliverable });
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
-    }
-});
-
-
-
-const Order = require('../models/Order');
-
-router.post('/checkout2', async (req, res) => {
-    try {
         const { customerInfo, items } = req.body;
-        const buyerName = customerInfo.name
+        const buyerName = customerInfo.name;
+        const buyerRoom = customerInfo.roomNumber || 'Not Available';
+        const buyerPhone = customerInfo.phoneNumber || 'Not Available';
 
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ message: 'Order must have at least one item' });
@@ -123,10 +70,12 @@ router.post('/checkout2', async (req, res) => {
                 sellerOrders.set(sellerId, {
                     seller: sellerId,
                     buyer: buyerName,
+                    buyerRoom: buyerRoom,
                     items: [],
                     totalAmount: 0,
                     status: 'Pending',
-                    createdAt: new Date()
+                    createdAt: new Date(),
+                    hasDeliverable: false
                 });
             }
 
@@ -136,21 +85,31 @@ router.post('/checkout2', async (req, res) => {
                 price: snack.price * quantity
             });
             sellerOrders.get(sellerId).totalAmount += snack.price * quantity;
+            if (snack.deliverable) {
+                sellerOrders.get(sellerId).hasDeliverable = true;
+            }
         }
 
         let deliverable = [];
         let nonDeliverable = [];
+        
+        // Create array of notification promises
+        const notificationPromises = [];
 
         for (let [sellerId, orderData] of sellerOrders) {
+            console.log(sellerId)
             const order = new Order(orderData);
             await order.save();
             
             const seller = await User.findById(sellerId);
+            const phoneNo = seller.phoneNo || 'Not Available';
+            console.log(phoneNo)
+
+            let orderSummary = [];
             for (let item of order.items) {
-                console.log(item)
                 const snack = await Snack.findById(item.snack);
                 if (snack.deliverable) {
-                    deliverable.push({ snack: snack.name, quantity: item.quantity });
+                    deliverable.push({ snack: snack.name, quantity: item.quantity, enlistedBy: seller.name });
                 } else {
                     nonDeliverable.push({
                         snack: snack.name,
@@ -160,6 +119,122 @@ router.post('/checkout2', async (req, res) => {
                         phoneNo: seller.phoneNo || 'Not Available'
                     });
                 }
+                orderSummary.push(`${snack.name} x ${item.quantity}`);
+            }
+
+            // Construct message
+            let message = `📦 New Order Received!\nItems: ${orderSummary.join(', ')}\n`;
+            if (orderData.hasDeliverable) {
+                message += `Buyer: ${buyerName}, Room No: ${buyerRoom}, Phone No: ${buyerPhone}\n`;
+            } else {
+                message += `Buyer: ${buyerName}`;
+            }
+            console.log(message);
+
+            // Send WhatsApp Notification
+            if (phoneNo !== 'Not Available') {
+                // Add notification to promise array instead of awaiting
+                notificationPromises.push({ phoneNo, message });
+            }
+        }
+
+        // Send all notifications (if any) and close socket when done
+        if (notificationPromises.length > 0) {
+            // Define a function to handle sending messages sequentially
+            const sendAllNotifications = async () => {
+                try {
+                    // Use the Mongoose auth state function with connection URI and encryption key
+                    const { state, saveCreds } = await useMongooseAuthState({
+                        mongoURI: process.env.MONGO_URI,
+                        encryptionKey: process.env.AUTH_ENCRYPTION_KEY
+                    });
+                    
+                    const sock = makeWASocket({
+                        printQRInTerminal: true,
+                        logger: P({ level: 'warn' }).child({}),
+                        msgRetryCounterCache: new NodeCache(),
+                        auth: state, // Pass the encrypted auth state
+                    });
+                    
+                    // Set up connection handler
+                    return new Promise((resolve, reject) => {
+                        // Track sent messages
+                        let messagesSent = 0;
+                        let connectionOpen = false;
+                        
+                        sock.ev.on('connection.update', async (update) => {
+                            const { connection, lastDisconnect, qr } = update;
+                            
+                            if (qr) {
+                                console.log('QR code received, scan please:', qr);
+                            }
+                            
+                            if (connection === 'close') {
+                                const disconnectError = lastDisconnect?.error;
+                                console.log('Connection closed due to', disconnectError);
+                                reject(new Error('Connection closed: ' + JSON.stringify(disconnectError)));
+                            } else if (connection === 'open') {
+                                console.log('Connection successful 🟢');
+                                connectionOpen = true;
+                                
+                                try {
+                                    // Send messages sequentially
+                                    for (const { phoneNo, message } of notificationPromises) {
+                                        const WA_ID = `91${phoneNo}@s.whatsapp.net`;
+                                        const [result] = await sock.onWhatsApp(WA_ID);
+                                        
+                                        if (result?.exists) {
+                                            console.log(`${WA_ID} exists on WhatsApp.`);
+                                            const msg = await sock.sendMessage(WA_ID, { text: message });
+                                            console.log('Message sent successfully:', msg?.key.id, 'to', WA_ID);
+                                            messagesSent++;
+                                        } else {
+                                            console.log(`${WA_ID} does not exist on WhatsApp.`);
+                                        }
+                                    }
+                                    
+                                    // All messages sent successfully
+                                    console.log(`All ${messagesSent} messages sent successfully`);
+                                    
+                                    // Clean up and close the socket
+                                    sock.ev.removeAllListeners();
+                                    await sock.end();
+                                    console.log('Socket connection closed after all messages sent.');
+                                    resolve();
+                                } catch (error) {
+                                    console.error('Error sending WhatsApp messages:', error);
+                                    // Clean up and close the socket on error
+                                    sock.ev.removeAllListeners();
+                                    await sock.end();
+                                    reject(error);
+                                }
+                            }
+                        });
+                        
+                        // Listen for credential updates and save them to MongoDB
+                        sock.ev.on('creds.update', saveCreds);
+                        
+                        // Set a timeout in case connection never opens
+                        setTimeout(() => {
+                            if (!connectionOpen) {
+                                sock.ev.removeAllListeners();
+                                sock.end();
+                                reject(new Error('Connection timeout after 30 seconds'));
+                            }
+                        }, 30000);
+                    });
+                } catch (error) {
+                    console.error('Error in sendAllNotifications:', error);
+                    throw error;
+                }
+            };
+            
+            try {
+                await sendAllNotifications();
+                console.log('All notifications sent successfully');
+            } catch (error) {
+                console.error('Failed to send some notifications:', error);
+                // Continue with response even if notifications fail
             }
         }
 
@@ -169,6 +244,7 @@ router.post('/checkout2', async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 });
+
 
 
 module.exports = router;

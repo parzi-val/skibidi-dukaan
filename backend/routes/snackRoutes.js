@@ -8,7 +8,6 @@ const upload = require('../middleware/uploadMiddleware');
 // Create a snack (Protected)
 router.post('/create', authMiddleware,upload.single('image'), async (req, res) => {
     try {
-        console.log("Uploaded File: ", req.file);
         const { name, description, price, quantity, deliverable } = req.body;
         
         // Ensure all required fields are present
@@ -27,7 +26,8 @@ router.post('/create', authMiddleware,upload.single('image'), async (req, res) =
             quantity,
             deliverable,
             enlistedBy: userId, // Assign the logged-in user's ID
-            imageUrl: req.file.path
+            imageUrl: req.file.path,
+            imagePublicId: req.file.filename
         });
 
         await newSnack.save();
@@ -55,17 +55,14 @@ router.get('/', async (req, res) => {
 
 
 // Update Snack (Protected)
-router.put('/:id', authMiddleware, async (req, res) => {
-    const { name, description, price, quantity } = req.body;
-
+router.put('/:id', authMiddleware,upload.single('image'), async (req, res) => {
+    const { name, description, price, quantity, deliverable, } = req.body;
     try {
         // Check if snack exists
         const snack = await Snack.findById(req.params.id);
         if (!snack) {
             return res.status(404).json({ message: 'Snack not found' });
         }
-        console.log(snack.enlistedBy.toString());
-        console.log(req.user._id.toString());
         // Ensure only the user who enlisted the snack can update it
         if (snack.enlistedBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'You do not have permission to update this snack' });
@@ -76,6 +73,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
         snack.description = description || snack.description;
         snack.price = price || snack.price;
         snack.quantity = quantity || snack.quantity;
+        snack.deliverable = deliverable || snack.deliverable;
+        if (req.file) {
+            snack.imageUrl = req.file.path;
+            snack.imagePublicId = req.file.filename;
+        }
 
         await snack.save();
         res.json({ message: 'Snack updated successfully', snack });

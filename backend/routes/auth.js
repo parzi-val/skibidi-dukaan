@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const authMiddleware = require('../middleware/authMiddleware');
 require('dotenv').config();
 
 const router = express.Router();
@@ -10,7 +11,6 @@ const router = express.Router();
 router.post('/register', async (req, res) => {
     try {
         const { name, email, password, roomNo, phoneNo } = req.body;
-
         // Check if user already exists
         let user = await User.findOne({ email });
         if (user) return res.status(400).json({ message: "User already exists" });
@@ -45,5 +45,16 @@ router.post('/login', async (req, res) => {
         res.status(500).json({ message: "Server error" });
     }
 });
+
+router.get('/whoami', authMiddleware, async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) return res.status(404).json({ message: "User not found" });
+
+        res.json({ name:user.name });
+    } catch (error) {
+        res.status(500).json({ message: "Server error" });
+    }
+})
 
 module.exports = router;
