@@ -15,6 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Eye, EyeOff, ArrowRight } from "lucide-react";
 import Navbar from "../Navbar";
+import { toast } from 'sonner';
+import axios from 'axios';
 
 export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -23,6 +25,9 @@ export default function AuthPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const [otpSent, setOtpSent] = useState(false);
+  const [otp, setOtp] = useState("");
 
   
   const [loginForm, setLoginForm] = useState({
@@ -62,7 +67,7 @@ export default function AuthPage() {
   };
   
 
-  const handleSignupSubmit = async (e:any) => {
+  const handleSignupSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
@@ -75,24 +80,71 @@ export default function AuthPage() {
     }
     
     try {
+      // First step: Send phone number to get OTP
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/otp/send-otp`, {
+        phoneNo: signupForm.phoneNo
+      });
+      
+      if (response.data.success) {
+        setOtpSent(true);
+        toast.success("OTP sent to your phone number");
+      } else {
+        throw new Error(response.data.message || "Failed to send OTP");
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+      console.error("OTP error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const verifyOTPAndRegister = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      // Verify OTP
+      const verifyResponse = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/otp/verify-otp`, {
+        phoneNo: signupForm.phoneNo,
+        otp: otp
+      });
+      
+      if (!verifyResponse.data.success) {
+        throw new Error("Invalid OTP");
+      }
+      
+      // Complete registration
       const result = await registerUser({
         name: signupForm.name,
         email: signupForm.email,
         password: signupForm.password,
         roomNo: signupForm.roomNo,
         phoneNo: signupForm.phoneNo
-      });      
+      });
+      
       console.log("Registration successful:", result);
       
-      // Redirect to dashboard or home page
-      router.push('/');
-    } catch (err:any) {
-      setError(err.message || 'Registration failed. Please try again.');
-      console.error("Registration error:", err);
+      // Reset OTP state
+      setOtpSent(false);
+      setOtp("");
+      
+      // Switch to login tab
+      setActiveTab("login");
+      
+      // Show success message
+      toast.success("Account created successfully! Please login.");
+      
+    } catch (err) {
+      setError(err.message || 'Verification failed. Please try again.');
+      console.error("Verification error:", err);
     } finally {
       setIsLoading(false);
     }
   };
+  
+  
   
 
   const updateLoginForm = (field:any, value:any) => {
@@ -331,10 +383,33 @@ export default function AuthPage() {
                         </Link>
                       </Label>
                     </div>
+                    {otpSent && (
+                      <div className="space-y-2">
+                        <Label htmlFor="otp">Enter OTP</Label>
+                        <Input 
+                          id="otp" 
+                          type="text" 
+                          placeholder="Enter OTP sent to your phone" 
+                          required
+                          value={otp}
+                          onChange={(e) => setOtp(e.target.value)}
+                        />
+                        <Button 
+                          type="button" 
+                          onClick={verifyOTPAndRegister} 
+                          className="w-full"
+                          disabled={isLoading}
+                        >
+                          {isLoading ? "Verifying..." : "Verify & Register"}
+                        </Button>
+                      </div>
+                    )}
                     
-                    <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? "Creating Account..." : "Create Account"}
-                    </Button>
+                    {!otpSent && (
+                      <Button type="submit" className="w-full" disabled={isLoading}>
+                        {isLoading ? "Sending OTP..." : "Get OTP & Continue"}
+                      </Button>
+                    )}
                   </form>
                 </TabsContent>
               </CardContent>

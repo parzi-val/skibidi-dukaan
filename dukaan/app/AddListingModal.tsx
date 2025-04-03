@@ -1,5 +1,5 @@
 "use client"
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,9 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
 import axios from "axios";
-import { toast } from "sonner" 
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const AddListingModal = ({ trigger, open, onOpenChange }) => {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -19,6 +21,21 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = getCookie('token');
+    if (!token && open) {
+      toast.error("You must be logged in to add a listing", {
+        description: "Please log in to continue"
+      });
+      if (onOpenChange) onOpenChange(false);
+      router.push('/login');
+    } else {
+      setIsAuthenticated(!!token);
+    }
+  }, [open, onOpenChange, router]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -41,9 +58,11 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
       const token = getCookie('token');
       
       if (!token) {
-        toast.error(error.response?.data?.message || "Failed to create listing. Please try again.", {
-            description: "Error"
-          });
+        toast.error("You must be logged in to create a listing", {
+          description: "Authentication required"
+        });
+        if (onOpenChange) onOpenChange(false);
+        router.push('/login');
         return;
       }
       
@@ -59,7 +78,6 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
       }
       
       // Make API request
-      console.log(process.env.NEXT_PUBLIC_API_URL)
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/snacks/create`, 
         formData,
@@ -92,10 +110,17 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
     } catch (error) {
       console.error("Error creating listing:", error);
       
-      toast.error(error.response?.data?.message || "Failed to create listing. Please try again.", {
-        description: "Error"
-      });
-
+      if (error.response?.status === 401) {
+        toast.error("Your session has expired", {
+          description: "Please log in again"
+        });
+        if (onOpenChange) onOpenChange(false);
+        router.push('/login');
+      } else {
+        toast.error(error.response?.data?.message || "Failed to create listing. Please try again.", {
+          description: "Error"
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -108,8 +133,24 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
     if (parts.length === 2) return parts.pop().split(';').shift();
   };
 
+  // If not authenticated, don't render the dialog content
+  if (!isAuthenticated && open) {
+    return null;
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(newOpen) => {
+      // If trying to open and not authenticated, redirect to login
+      if (newOpen && !isAuthenticated) {
+        toast.error("You must be logged in to add a listing", {
+          description: "Please log in to continue"
+        });
+        router.push('/login');
+        return;
+      }
+      // Otherwise, handle normally
+      if (onOpenChange) onOpenChange(newOpen);
+    }}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       
       <DialogContent className="sm:max-w-[500px]">

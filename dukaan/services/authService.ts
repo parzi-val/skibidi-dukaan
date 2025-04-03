@@ -5,6 +5,8 @@ interface UserData {
   name: string;
   email: string;
   password: string;
+  roomNo: string;
+  phoneNo: number;
 }
 
 interface AuthResponse {
@@ -28,6 +30,8 @@ export const registerUser = async (userData: UserData): Promise<AuthResponse> =>
     const response: AxiosResponse<AuthResponse> = await axiosInstance.post('/auth/register', {
       name: userData.name,
       email: userData.email,
+      roomNo: userData.roomNo,
+      phoneNo: userData.phoneNo,
       password: userData.password
     });
     

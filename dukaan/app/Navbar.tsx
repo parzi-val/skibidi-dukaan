@@ -1,6 +1,6 @@
 'use client';
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import AddListingModal from "./AddListingModal";
@@ -10,11 +10,68 @@ import {
   DropdownMenuContent, 
   DropdownMenuItem 
 } from "@/components/ui/dropdown-menu";
-import { ShoppingCart, Menu, X } from "lucide-react";
+import { ShoppingCart, Menu, X, User } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import axios from "axios";
+import { toast } from "sonner";
 
 export default function Navbar() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userName, setUserName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Check if user is logged in and get user data
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = getCookie('token');
+      
+      if (token) {
+        try {
+          // You can either make an API call to get user info
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/auth/whoami`, {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          });
+          
+          setUserName(response.data.name || "User");
+          setIsLoggedIn(true);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+          setIsLoggedIn(false);
+        }
+      } else {
+        setIsLoggedIn(false);
+      }
+      
+      setIsLoading(false);
+    };
+    
+    checkAuth();
+  }, []);
+
+  // Helper function to get cookie
+  const getCookie = (name) => {
+    if (typeof document === 'undefined') return null;
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+    return null;
+  };
+
+
+  // Logout function
+  const handleLogout = () => {
+    // Remove the token
+    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    // Update state
+    setIsLoggedIn(false);
+    setUserName("");
+    // Show a toast notification
+    toast.success("Logged out successfully");
+  };
+
   return (
     <nav className="flex justify-between items-center p-4 rounded-lg">
       <Link href="/" className=" ">
@@ -51,18 +108,31 @@ export default function Navbar() {
         </Link>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline">Account</Button>
+            <Button variant="outline" className="flex items-center gap-2">
+              <User size={16} />
+              {isLoading ? "Loading..." : isLoggedIn ? userName : "Account"}
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/login">Profile</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/profile">Orders</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link href="/logout">Logout</Link>
-            </DropdownMenuItem>
+            {isLoggedIn ? (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={handleLogout}>
+                  Logout
+                </DropdownMenuItem>
+              </>
+            ) : (
+              <>
+                <DropdownMenuItem asChild>
+                  <Link href="/login">Login</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/login?tab=signup">Start Selling</Link>
+                </DropdownMenuItem>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
@@ -83,28 +153,28 @@ export default function Navbar() {
           </SheetTrigger>
           <SheetContent side="right">
             <div className="flex flex-col ml-4 gap-6 mt-10">
-              <Link href="/#catalog" className="text-lg font-medium">
-                <SheetClose className="w-full text-left">Browse</SheetClose>
-              </Link>
-              <AddListingModal 
-                trigger={
-                  <SheetClose className="w-full text-left">Sell</SheetClose>
-                }
-                open={isModalOpen}
-                onOpenChange={setIsModalOpen}
-              />
-                
-             
-              <div className="h-px bg-gray-200 my-2"></div>
-              <Link href="/login" className="text-lg font-medium">
-                <SheetClose className="w-full text-left">Profile</SheetClose>
-              </Link>
-              <Link href="/profile" className="text-lg font-medium">
-                <SheetClose className="w-full text-left">Orders</SheetClose>
-              </Link>
-              <Link href="/logout" className="text-lg font-medium">
-                <SheetClose className="w-full text-left">Logout</SheetClose>
-              </Link>
+              {/* ... (other menu items) ... */}
+              
+              {isLoggedIn ? (
+                <>
+                  <div className="text-lg font-bold mb-2">{userName}</div>
+                  <Link href="/profile" className="text-lg font-medium">
+                    <SheetClose className="w-full text-left">Profile</SheetClose>
+                  </Link>
+                  <button onClick={handleLogout} className="text-lg font-medium text-left">
+                    <SheetClose className="w-full text-left">Logout</SheetClose>
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link href="/login" className="text-lg font-medium">
+                    <SheetClose className="w-full text-left">Login</SheetClose>
+                  </Link>
+                  <Link href="/login?tab=signup" className="text-lg font-medium">
+                    <SheetClose className="w-full text-left">Sign Up</SheetClose>
+                  </Link>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>
