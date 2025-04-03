@@ -36,6 +36,10 @@ const Cart = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+
   // Calculate totals
   const subtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = 0; // You can calculate this based on your business logic
@@ -56,79 +60,94 @@ const Cart = () => {
   const handleQuantityChange = async (itemId, newQuantity) => {
     if (newQuantity < 1) return;
     
-    // try {
-    //   // Check with backend if the requested quantity is available
-    //   const response = await axios.post(
-    //     `${process.env.NEXT_PUBLIC_API_URL}/cart/`,
-    //     {
-    //       productId: itemId,
-    //       quantity: newQuantity
-    //     }
-    //   );
+    try {
+      // Check with backend if the requesconst [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [verifiedPhone, setVerifiedPhone] = useState("");
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/cart/validate`,
+        {
+          id: itemId,
+          quantity: newQuantity
+        }
+      );
       
-    //   // If validation passes, update the quantity in the cart
-    //   if (response.data.valid) {
-    //     updateQuantity(itemId, newQuantity);
-    //   } else {
+      // If validation passes, update the quantity in the cart
+      if (response.data.valid) {
+        updateQuantity(itemId, newQuantity);
+      } else {
 
-    //     toast.error(response.data.message || "Requested quantity not available", {
-    //       description: "Please try a smaller quantity"
-    //     });
-    //   }
-    // } catch (error) {
-    //   console.error("Error validating quantity:", error);
-    //   toast.error("Could not validate product quantity", {
-    //     description: "Please try again later"
-    //   });
-    // }
+        toast.error(response.data.message || "Requested quantity not available", {
+          description: "Please try a smaller quantity"
+        });
+      }
+    } catch (error) {
+      console.error("Error validating quantity:", error);
+      toast.error("Could not validate product quantity", {
+        description: "Please try again later"
+      });
+    }
   };
   
 
-  // Function to handle checkout process
   const handleCheckout = async (e) => {
     e?.preventDefault();
     setIsSubmitting(true);
 
     try {
-      // Prepare order data
+      if (!otpSent) {
+        // First step: Send OTP
+        const phoneWithCountryCode = `+91${customerInfo.phoneNumber}`;
+        const response = await axios.post(
+          `${process.env.NEXT_PUBLIC_API_URL}/otp/send-otp`,
+          { phoneNo: customerInfo.phoneNumber }
+        );
+        
+        if (response.data.success) {
+          setOtpSent(true);
+          toast.success("OTP sent to your phone number");
+        }
+        return;
+      }
+
+      // Second step: Verify OTP
+      const verifyResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/otp/verify-otp`,
+        {
+          phoneNo: `${customerInfo.phoneNumber}`,
+          otp: otp
+        }
+      );
+
+      if (!verifyResponse.data.success) {
+        throw new Error("Invalid OTP");
+      }
+
+      // If OTP verified, proceed with checkout
       const orderData = {
-        customerInfo,
+        customerInfo: {
+          ...customerInfo,
+          phoneNumber: `${customerInfo.phoneNumber}`
+        },
         items: cartItems,
         totalAmount: total
       };
-      console.log(JSON.stringify(orderData))
-      // Send to backend
-      
-      const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/cart/checkout`, 
-        orderData,
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
+
+      const orderResponse = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/cart/checkout`,
+        orderData
       );
-      
+
       // Handle successful order
-      toast.success("Order placed successfully!", {
-        description: "Leave a review!"
-      });
-      setOrderResult(response.data);
-      
-      // Close checkout modal and open success modal
+      toast.success("Order placed successfully!");
+      setOrderResult(orderResponse.data);
       setIsCheckoutModalOpen(false);
       setIsSuccessModalOpen(true);
-      // Clear the cart
       clearCart();
-      
-      // Close the modal
-      setIsCheckoutModalOpen(false);
-      
+
     } catch (error) {
       console.error('Checkout error:', error);
-      toast.error("Failed to place order", {
-        description: error.response?.data?.message || "Please try again later."
-      });
+      toast.error(error.response?.data?.message || "Checkout failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -260,71 +279,92 @@ const Cart = () => {
 
       {/* Checkout Modal */}
       <Dialog open={isCheckoutModalOpen} onOpenChange={setIsCheckoutModalOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Complete Your Order</DialogTitle>
-          </DialogHeader>
-          
-          <form onSubmit={handleCheckout} className="space-y-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input 
-                id="name" 
-                name="name"
-                value={customerInfo.name} 
-                onChange={handleInputChange} 
-                placeholder="Enter your full name" 
-                required 
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="phoneNumber">Phone Number</Label>
-              <Input 
-                id="phoneNumber" 
-                name="phoneNumber"
-                value={customerInfo.phoneNumber} 
-                onChange={handleInputChange} 
-                placeholder="Enter your phone number" 
-                required 
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="roomNumber">Room Number</Label>
-              <Input 
-                id="roomNumber" 
-                name="roomNumber"
-                value={customerInfo.roomNumber} 
-                onChange={handleInputChange} 
-                placeholder="Enter your room number" 
-                required 
-              />
-            </div>
-            
-            <div className="pt-4 border-t">
-              <div className="flex justify-between font-semibold">
-                <span>Total Amount:</span>
-                <span>₹{total.toFixed(2)}</span>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{otpSent ? "Verify OTP" : "Complete Your Order"}</DialogTitle>
+        </DialogHeader>
+        
+        <form onSubmit={handleCheckout} className="space-y-4 py-4">
+          {!otpSent ? (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <div className="flex">
+                  <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-gray-50 text-gray-500">
+                    +91
+                  </div>
+                  <Input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    type="tel"
+                    className="rounded-l-none"
+                    placeholder="9876543210"
+                    required
+                    maxLength={10}
+                    value={customerInfo.phoneNumber}
+                    onChange={(e) => {
+                      const value = e.target.value.replace(/\D/g, '');
+                      setCustomerInfo(prev => ({
+                        ...prev,
+                        phoneNumber: value.slice(0, 10)
+                      }));
+                    }}
+                  />
+                </div>
               </div>
-            </div>
+            </>
+          ) : (
+            <>
+              <div className="grid gap-2">
+                <Label htmlFor="otp">Enter OTP</Label>
+                <Input
+                  id="otp"
+                  type="text"
+                  placeholder="Enter 6-digit OTP"
+                  required
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="name">Full Name</Label>
+                <Input
+                  id="name"
+                  name="name"
+                  value={customerInfo.name}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="roomNumber">Room Number</Label>
+                <Input
+                  id="roomNumber"
+                  name="roomNumber"
+                  value={customerInfo.roomNumber}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+            </>
+          )}
             
             <DialogFooter className="pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setIsCheckoutModalOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Processing..." : "Place Order"}
-              </Button>
-            </DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsCheckoutModalOpen(false);
+                setOtpSent(false);
+              }}
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Processing..." : otpSent ? "Verify & Place Order" : "Send OTP"}
+            </Button>
+          </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

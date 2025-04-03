@@ -322,15 +322,30 @@ export default function AuthPage() {
 
                     <div className="space-y-2">
                       <Label htmlFor="phoneNo">Phone Number</Label>
-                      <Input 
-                        id="phoneNo" 
-                        type="tel" 
-                        placeholder="+91 9876543210" 
-                        required
-                        value={signupForm.phoneNo}
-                        onChange={(e) => updateSignupForm('phoneNo', e.target.value)}
-                      />
+                      <div className="flex">
+                        <div className="flex items-center justify-center px-3 border border-r-0 rounded-l-md bg-gray-50 text-gray-500">
+                          +91
+                        </div>
+                        <Input 
+                          id="phoneNo" 
+                          type="tel" 
+                          className="rounded-l-none"
+                          placeholder="9876543210" 
+                          required
+                          maxLength={10}
+                          value={signupForm.phoneNo}
+                          onChange={(e) => {
+                            // Only allow digits
+                            const value = e.target.value.replace(/\D/g, '');
+                            // Limit to 10 digits
+                            const truncated = value.slice(0, 10);
+                            updateSignupForm('phoneNo', truncated);
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500">Enter 10 digit mobile number without country code</p>
                     </div>
+
 
                     <div className="space-y-2">
                       <Label htmlFor="signup-password">Password</Label>

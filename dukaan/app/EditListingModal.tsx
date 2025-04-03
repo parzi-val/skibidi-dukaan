@@ -1,4 +1,4 @@
-// components/EditListingModal.jsx
+"use client"
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,21 +7,42 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import Image from "next/image";
+import axios from "axios";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [quantity, setQuantity] = useState(1);
   const [description, setDescription] = useState("");
   const [willDeliver, setWillDeliver] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // Check authentication on component mount
+  useEffect(() => {
+    const token = getCookie('token');
+    if (!token && open) {
+      toast.error("You must be logged in to edit a listing", {
+        description: "Please log in to continue"
+      });
+      if (onOpenChange) onOpenChange(false);
+      router.push('/login');
+    } else {
+      setIsAuthenticated(!!token);
+    }
+  }, [open, onOpenChange, router]);
 
   // Populate form with listing data when modal opens
   useEffect(() => {
     if (listing && open) {
       setName(listing.name || "");
       setPrice(listing.price || "");
+      setQuantity(listing.quantity || 1);
       setDescription(listing.description || "");
       setWillDeliver(listing.isDeliverable || false);
       setImagePreview(listing.imgSrc || null);
@@ -45,27 +66,80 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
     setIsSubmitting(true);
     
     try {
-      // Here you would handle the API call to update the listing
-      // For example:
-      // const formData = new FormData();
-      // formData.append('id', listing.id);
-      // formData.append('name', name);
-      // formData.append('price', price);
-      // formData.append('description', description);
-      // formData.append('willDeliver', willDeliver);
-      // if (imageFile) formData.append('image', imageFile);
-      // await fetch('/api/listings/update', { method: 'PUT', body: formData });
+      // Get JWT token from cookies
+      const token = getCookie('token');
       
-      console.log({ id: listing?.id, name, price, description, willDeliver, imageFile });
+      if (!token) {
+        toast.error("You must be logged in to update a listing", {
+          description: "Authentication required"
+        });
+        if (onOpenChange) onOpenChange(false);
+        router.push('/login');
+        return;
+      }
+      
+      // Create FormData for the API request
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('description', description);
+      formData.append('price', price);
+      formData.append('quantity', quantity.toString());
+      formData.append('deliverable', willDeliver.toString());
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+      
+      // Make API request
+      const response = await axios.put(
+        `${process.env.NEXT_PUBLIC_API_URL}/snacks/${listing.id}`, 
+        formData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          }
+        }
+      );
+      
+      // Handle successful response
+      console.log("Listing updated:", response.data);
+      
+      toast.success("Your listing has been updated", {
+        description: "Success!"
+      });
       
       // Close modal
       if (onOpenChange) onOpenChange(false);
     } catch (error) {
       console.error("Error updating listing:", error);
+      
+      if (error.response?.status === 401) {
+        toast.error("Your session has expired", {
+          description: "Please log in again"
+        });
+        if (onOpenChange) onOpenChange(false);
+        router.push('/login');
+      } else {
+        toast.error(error.response?.data?.message || "Failed to update listing. Please try again.", {
+          description: "Error"
+        });
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  // Helper function to get cookie value
+  const getCookie = (name) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  };
+
+  // If not authenticated, don't render the dialog content
+  if (!isAuthenticated && open) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -102,6 +176,19 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
           </div>
           
           <div className="grid gap-2">
+            <Label htmlFor="quantity">Quantity</Label>
+            <Input 
+              id="quantity" 
+              type="number" 
+              value={quantity} 
+              onChange={(e) => setQuantity(parseInt(e.target.value))} 
+              placeholder="e.g., 1" 
+              required 
+              min="1"
+            />
+          </div>
+          
+          <div className="grid gap-2">
             <Label htmlFor="description">Description (Optional)</Label>
             <Textarea 
               id="description" 
@@ -114,7 +201,7 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
           
           <div className="flex items-center justify-between">
             <Label htmlFor="willDeliver" className="cursor-pointer">
-              Available for Delivery
+              Will Deliver to Room
             </Label>
             <Switch 
               id="willDeliver" 
