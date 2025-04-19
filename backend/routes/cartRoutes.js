@@ -24,7 +24,7 @@ router.post('/validate', async (req, res) => {
         }
 
         if (quantity > snack.quantity) {
-            return res.status(400).json({ valid:false });
+            return res.status(200).json({ valid:false });
         }
 
         res.status(200).json({ valid:true });
