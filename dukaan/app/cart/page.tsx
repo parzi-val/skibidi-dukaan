@@ -62,8 +62,7 @@ const Cart = () => {
     
     try {
       // Check with backend if the requesconst [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false);
-  const [verifiedPhone, setVerifiedPhone] = useState("");
+
       const response = await axios.post(
         `${process.env.NEXT_PUBLIC_API_URL}/cart/validate`,
         {
