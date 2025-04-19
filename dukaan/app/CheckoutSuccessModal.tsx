@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, AlertTriangle } from "lucide-react";
 import Link from 'next/link';
 
-const CheckoutSuccessModal = ({ open, onOpenChange, orderData }) => {
+const CheckoutSuccessModal = ({ open, onOpenChange, orderData }:any) => {
   const { deliverable, nonDeliverable } = orderData;
   
   return (
@@ -29,7 +29,7 @@ const CheckoutSuccessModal = ({ open, onOpenChange, orderData }) => {
             <div>
               <h3 className="font-medium text-lg mb-2">Items for Delivery:</h3>
               <div className="space-y-3">
-                {deliverable.map((item, index) => (
+                {deliverable.map((item:any, index:any) => (
                   <div key={index} className="bg-green-50 p-3 rounded-md">
                     <p className="font-medium">{item.snack}</p>
                     <div className="text-sm text-gray-600 mt-1">
@@ -50,7 +50,7 @@ const CheckoutSuccessModal = ({ open, onOpenChange, orderData }) => {
                 Pickup Only Items:
               </h3>
               <div className="space-y-3">
-                {nonDeliverable.map((item, index) => (
+                {nonDeliverable.map((item:any, index:any) => (
                   <div key={index} className="bg-amber-50 p-3 rounded-md">
                     <p className="font-medium">{item.snack}</p>
                     <div className="text-sm text-gray-600 mt-1">

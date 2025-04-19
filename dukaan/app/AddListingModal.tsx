@@ -10,8 +10,12 @@ import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-
-const AddListingModal = ({ trigger, open, onOpenChange }) => {
+interface AddListingModalProps {
+  trigger: any;
+  open: any;
+  onOpenChange: (open: any) => any;
+}
+const AddListingModal = ({ trigger, open, onOpenChange }: AddListingModalProps) => {
   const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -19,7 +23,7 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
   const [description, setDescription] = useState("");
   const [willDeliver, setWillDeliver] = useState(false);
   const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
@@ -37,19 +41,19 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
     }
   }, [open, onOpenChange, router]);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e:any) => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => {
-        setImagePreview(reader.result);
+        setImagePreview(reader.result as any);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e:any) => {
     e.preventDefault();
     setIsSubmitting(true);
     
@@ -107,7 +111,7 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
       
       // Close modal
       if (onOpenChange) onOpenChange(false);
-    } catch (error) {
+    } catch (error:any) {
       console.error("Error creating listing:", error);
       
       if (error.response?.status === 401) {
@@ -127,9 +131,9 @@ const AddListingModal = ({ trigger, open, onOpenChange }) => {
   };
 
   // Helper function to get cookie value
-  const getCookie = (name) => {
+  const getCookie = (name:any) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
+    const parts:any = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
   };
 

@@ -11,7 +11,7 @@ import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
+const EditListingModal = ({ trigger, open, onOpenChange, listing }:any) => {
   const router = useRouter();
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
@@ -49,19 +49,19 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
     }
   }, [listing, open]);
 
-  const handleImageChange = (e) => {
+  const handleImageChange = (e:any) => {
     const file = e.target.files[0];
     if (file) {
       setImageFile(file);
       const reader = new FileReader();
       reader.onload = () => {
-        setImagePreview(reader.result);
+        setImagePreview(reader.result as any);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e:any) => {
     e.preventDefault();
     setIsSubmitting(true);
     
@@ -110,7 +110,7 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
       
       // Close modal
       if (onOpenChange) onOpenChange(false);
-    } catch (error) {
+    } catch (error:any ) {
       console.error("Error updating listing:", error);
       
       if (error.response?.status === 401) {
@@ -130,9 +130,9 @@ const EditListingModal = ({ trigger, open, onOpenChange, listing }) => {
   };
 
   // Helper function to get cookie value
-  const getCookie = (name) => {
+  const getCookie = (name:any) => {
     const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
+    const parts:any = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
   };
 

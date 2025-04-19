@@ -51,7 +51,7 @@ const Catalog = () => {
           {products.map((product, index) => (
             <>
             <ProductCard
-              key={product._id || index}
+              key={product._id || index} 
               id={product._id}
               name={product.name}
               price={product.price}
