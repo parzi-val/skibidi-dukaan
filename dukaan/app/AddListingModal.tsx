@@ -223,7 +223,7 @@ const AddListingModal = ({ trigger, open, onOpenChange }: AddListingModalProps) 
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="image">Product Image</Label>
+            <Label htmlFor="image">Product Image {'(USE PHOTO LIBRARY ONLY)'}</Label>
             <Input 
               id="image" 
               type="file" 
