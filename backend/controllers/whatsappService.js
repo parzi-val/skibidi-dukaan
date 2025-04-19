@@ -101,6 +101,6 @@ async function sendNotif(phoneNo, message) {
     });
 }
 
-sendNotif('7994806345', 'Hello from WhatsApp!') // Example usage// 
+// sendNotif('7994806345', 'Hello from WhatsApp!') // Example usage// 
 
 module.exports = { sendNotif };
