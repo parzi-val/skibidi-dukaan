@@ -8,8 +8,9 @@ const upload = require('../middleware/uploadMiddleware');
 // Create a snack (Protected)
 router.post('/create', authMiddleware,upload.single('image'), async (req, res) => {
     try {
-        const { name, description, price, quantity, deliverable } = req.body;
         console.log(req)
+        const { name, description, price, quantity, deliverable } = req.body;
+        
         // Ensure all required fields are present
         if (!name || !price || !quantity) {
             return res.status(400).json({ message: 'Name, price, and quantity are required' });
