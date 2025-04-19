@@ -8,7 +8,6 @@ const upload = require('../middleware/uploadMiddleware');
 // Create a snack (Protected)
 router.post('/create', authMiddleware,upload.single('image'), async (req, res) => {
     try {
-        console.log(req)
         const { name, description, price, quantity, deliverable } = req.body;
         
         // Ensure all required fields are present
@@ -31,6 +30,8 @@ router.post('/create', authMiddleware,upload.single('image'), async (req, res) =
             imagePublicId: req.file.filename
         });
 
+        console.log(req.file.path, req.file.filename)
+        
         await newSnack.save();
         res.status(201).json({ message: 'Snack created successfully', snack: newSnack });
 
