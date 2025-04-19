@@ -28,7 +28,7 @@ const Catalog = () => {
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col justify-center items-center w-full">
+    <div className="min-h-screen flex flex-col mt-20  items-center w-full">
       <h2 className="text-4xl font-semibold pl-8 mb-8" id="catalog">Available now</h2>
       
       {loading && <p>Loading products...</p>}
