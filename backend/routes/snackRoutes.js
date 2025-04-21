@@ -59,14 +59,27 @@ router.get('/', async (req, res) => {
 
 
 // Update Snack (Protected)
-router.put('/:id', authMiddleware,upload.single('image'), async (req, res) => {
-    const { name, description, price, quantity, deliverable, } = req.body;
+router.put('/:id', authMiddleware, (req, res, next) => {
+    upload.single('image')(req, res, function (err) {
+        if (err) {
+            console.error('[UPLOAD ERROR]', err);
+            return res.status(400).json({ message: 'File upload error', error: err.message });
+        }
+        next();
+    });
+}, async (req, res) => {
+    const { name, description, price, quantity, deliverable } = req.body;
+
+    console.log('[ROUTE DEBUG] req.body:', req.body);
+    console.log('[ROUTE DEBUG] req.file:', req.file);
+
     try {
         // Check if snack exists
         const snack = await Snack.findById(req.params.id);
         if (!snack) {
             return res.status(404).json({ message: 'Snack not found' });
         }
+
         // Ensure only the user who enlisted the snack can update it
         if (snack.enlistedBy.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'You do not have permission to update this snack' });
@@ -78,6 +91,7 @@ router.put('/:id', authMiddleware,upload.single('image'), async (req, res) => {
         snack.price = price || snack.price;
         snack.quantity = quantity || snack.quantity;
         snack.deliverable = deliverable || snack.deliverable;
+
         if (req.file) {
             snack.imageUrl = req.file.path;
             snack.imagePublicId = req.file.filename;
@@ -86,10 +100,11 @@ router.put('/:id', authMiddleware,upload.single('image'), async (req, res) => {
         await snack.save();
         res.json({ message: 'Snack updated successfully', snack });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ message: 'Server Error' });
+        console.error('[ROUTE ERROR]', error);
+        res.status(500).json({ message: 'Server Error', error: error.message });
     }
 });
+
 
 // Delete Snack (Protected)
 router.delete('/:id', authMiddleware, async (req, res) => {
