@@ -13,6 +13,12 @@ app.use((req, res, next) => {
     next();
 });
 
+app.use((err, req, res, next) => {
+    console.error('[GLOBAL ERROR]', err);
+    res.status(500).json({ message: 'Something went wrong', error: err.message });
+});
+
+
 // Routes
 app.use('/auth', require('./routes/auth'));
 app.use('/snacks', require('./routes/snackRoutes'));
