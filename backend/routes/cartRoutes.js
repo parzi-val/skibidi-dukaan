@@ -7,8 +7,6 @@ const { default: makeWASocket } = require('baileys');
 const P = require('pino');
 const NodeCache = require('node-cache');
 
-
-
 const router = express.Router();
 
 router.post('/validate', async (req, res) => {
@@ -95,6 +93,11 @@ router.post('/checkout', async (req, res) => {
         
         // Create array of notification promises
         const notificationPromises = [];
+        
+        // Create buyer message components
+        let buyerOrderSummary = [];
+        let buyerPickupDetails = [];
+        let totalAmount = 0;
 
         for (let [sellerId, orderData] of sellerOrders) {
             console.log(sellerId)
@@ -118,11 +121,21 @@ router.post('/checkout', async (req, res) => {
                         roomNo: seller.roomNo || 'Not Available',
                         phoneNo: seller.phoneNo || 'Not Available'
                     });
+                    
+                    // Add pickup details for buyer message
+                    buyerPickupDetails.push({
+                        item: snack.name,
+                        quantity: item.quantity,
+                        seller: seller.name,
+                        roomNo: seller.roomNo || 'Not Available'
+                    });
                 }
                 orderSummary.push(`${snack.name} x ${item.quantity}`);
+                buyerOrderSummary.push(`${snack.name} x ${item.quantity} - ₹${snack.price * item.quantity}`);
+                totalAmount += snack.price * item.quantity;
             }
 
-            // Construct message
+            // Construct seller message
             let message = `📦 New Order Received!\nItems: ${orderSummary.join(', ')}\n`;
             if (orderData.hasDeliverable) {
                 message += `Buyer: ${buyerName}, Room No: ${buyerRoom}, Phone No: ${buyerPhone}\n`;
@@ -131,11 +144,31 @@ router.post('/checkout', async (req, res) => {
             }
             console.log(message);
 
-            // Send WhatsApp Notification
+            // Send WhatsApp Notification to seller
             if (phoneNo !== 'Not Available') {
-                // Add notification to promise array instead of awaiting
                 notificationPromises.push({ phoneNo, message });
             }
+        }
+        
+        // Construct buyer message with order confirmation
+        if (buyerPhone !== 'Not Available') {
+            let buyerMessage = `🛒 Order Confirmation!\n\nThank you for your order!\n\nItems:\n${buyerOrderSummary.join('\n')}\n\nTotal Amount: ₹${totalAmount}\n`;
+            
+            // Add pickup instructions if needed
+            if (buyerPickupDetails.length > 0) {
+                buyerMessage += '\n📍 Pickup Instructions:\n';
+                buyerPickupDetails.forEach(item => {
+                    buyerMessage += `${item.item} x ${item.quantity} - Collect from ${item.seller} (Room ${item.roomNo})\n`;
+                });
+            }
+            
+            // Add delivery confirmation for deliverable items
+            if (deliverable.length > 0) {
+                buyerMessage += '\nDeliverable items will be delivered to your room shortly.';
+            }
+            
+            // Add buyer notification to the promises array
+            notificationPromises.push({ phoneNo: buyerPhone, message: buyerMessage });
         }
 
         // Send all notifications (if any) and close socket when done
@@ -244,7 +277,5 @@ router.post('/checkout', async (req, res) => {
         res.status(500).json({ message: 'Server Error' });
     }
 });
-
-
 
 module.exports = router;
