@@ -49,11 +49,15 @@ async function sendNotif(phoneNo, message) {
             };
 
             const cleanupAndReject = (error) => {
-                clearTimeout(connectionTimeout);
-                sock.ev.removeAllListeners();
-                sock.end();
-                console.log('Socket closed after error');
-                reject(error);
+                try{
+                    clearTimeout(connectionTimeout);
+                    sock.ev.removeAllListeners();
+                    sock.end();
+                    console.log('Socket closed after error');
+                    reject(error);
+                }catch(e){
+                    console.log(e)
+                }
             };
 
             sock.ev.on('connection.update', async (update) => {
