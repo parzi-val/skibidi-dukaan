@@ -37,11 +37,15 @@ async function sendNotif(phoneNo, message) {
 
             // Function to clean up resources
             const cleanupAndResolve = (result) => {
-                clearTimeout(connectionTimeout);
-                sock.ev.removeAllListeners();
-                sock.end();
-                console.log('Socket closed successfully after message sent');
-                resolve(result);
+                try{
+                    clearTimeout(connectionTimeout);
+                    sock.ev.removeAllListeners();
+                    sock.end();
+                    console.log('Socket closed successfully after message sent');
+                    resolve(result);
+                }catch(e){
+                    console.log(e)
+                }
             };
 
             const cleanupAndReject = (error) => {
