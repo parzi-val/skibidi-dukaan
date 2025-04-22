@@ -43,8 +43,13 @@ async function sendNotif(phoneNo, message) {
                     sock.end();
                     console.log('Socket closed successfully after message sent');
                     resolve(result);
-                }catch(e){
-                    console.log(e)
+                }catch(error){
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        code: error?.output?.statusCode || 'no-status-code',
+                        raw: JSON.stringify(error, null, 2),
+                    });
                 }
             };
 
@@ -55,8 +60,13 @@ async function sendNotif(phoneNo, message) {
                     sock.end();
                     console.log('Socket closed after error');
                     reject(error);
-                }catch(e){
-                    console.log(e)
+                }catch(error){
+                    console.error('Error details:', {
+                        message: error.message,
+                        stack: error.stack,
+                        code: error?.output?.statusCode || 'no-status-code',
+                        raw: JSON.stringify(error, null, 2),
+                    });
                 }
             };
 
