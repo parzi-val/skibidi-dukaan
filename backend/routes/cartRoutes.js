@@ -230,16 +230,24 @@ router.post('/checkout', async (req, res) => {
                                     console.log(`All ${messagesSent} messages sent successfully`);
                                     
                                     // Clean up and close the socket
-                                    sock.ev.removeAllListeners();
-                                    await sock.end();
-                                    console.log('Socket connection closed after all messages sent.');
-                                    resolve();
+                                    try{
+                                        sock.ev.removeAllListeners();
+                                        sock.end();
+                                        console.log('Socket connection closed after all messages sent.');
+                                        resolve();
+                                    }catch(e){
+                                        console.log(e)
+                                    }
                                 } catch (error) {
                                     console.error('Error sending WhatsApp messages:', error);
                                     // Clean up and close the socket on error
-                                    sock.ev.removeAllListeners();
-                                    await sock.end();
-                                    reject(error);
+                                    try{
+                                        sock.ev.removeAllListeners();
+                                        sock.end();
+                                        reject(error);
+                                    }catch(e){
+                                        console.log(e)
+                                    }
                                 }
                             }
                         });
