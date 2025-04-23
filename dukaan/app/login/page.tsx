@@ -246,7 +246,7 @@ export default function AuthPage() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
                         <Label htmlFor="password">Password</Label>
-                        <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+                        <Link href="/forget-password" className="text-sm text-blue-600 hover:underline">
                           Forgot password?
                         </Link>
                       </div>
