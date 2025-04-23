@@ -38,6 +38,7 @@ for user in user_cursor:
     user_analytics.append({
         "Name": user['name'],
         "Email": user['email'],
+        "Phone No": user['phoneNo'],
         "Total Sales": total_sales,
         "Total Earnings": total_earning,
         "Completed Orders": len(orders),
