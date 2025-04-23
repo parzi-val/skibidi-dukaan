@@ -95,10 +95,10 @@ const SellerProfile = () => {
                 </Avatar>
                 <div className="space-y-1">
                   <CardTitle className="text-2xl">{seller.name}</CardTitle>
-                  <CardDescription className="text-base">{seller.email}</CardDescription>
+                  <CardDescription className="text-base  hidden md:block">{seller.email}</CardDescription>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="secondary">Seller</Badge>
-                    <CardDescription>Member since {seller.joinedDate}</CardDescription>
+                    <CardDescription className='hidden md:block'>Member since {seller.joinedDate}</CardDescription>
                   </div>
                 </div>
               </CardHeader>
@@ -248,7 +248,7 @@ const ListingCard = ({ listing }) => {
         </div>
         <div className="text-sm text-gray-500 space-y-1">
           <p>Listed: {new Date(listing.dateAdded).toLocaleDateString()}</p>
-          <p>Views: {listing.views}</p>
+
           {listing.isDeliverable ? (
             <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
               Delivery Available

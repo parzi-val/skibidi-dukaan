@@ -44,7 +44,9 @@ const ProductCard = ({
           </Badge>
         </div>
         <div className='text-right'>
-          {isDeliverable ? "" : <Badge variant={"outline"}>{room}</Badge>}
+        <Badge variant={"outline"} className={isDeliverable ? "invisible" : ""}>
+          {room}
+        </Badge>
         </div>
       </CardHeader>
       

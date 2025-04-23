@@ -58,7 +58,7 @@ const Catalog = () => {
               price={product.price}
               imgSrc={product.imgSrc || product.imageUrl}
               isDeliverable={product.isDeliverable || product.deliverable}
-              room={`${product.enlistedBy.roomNo.match(/\d+/)?.[0].slice(0, -2)}th floor`}
+              room={`Floor ${product.enlistedBy.roomNo.match(/\d+/)?.[0].slice(0, -2)}`}
             />
             </>
             
