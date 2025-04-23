@@ -12,6 +12,7 @@ const ProductCard = ({
   price = 390,
   imgSrc = "/panini.jpg",
   isDeliverable = true,
+  room = "IDKth floor"
 }) => {
   const { addToCart } = useCart(); // Use the cart context
   
@@ -37,10 +38,13 @@ const ProductCard = ({
       
       <CardHeader className="md:p-4 pb-0">
         <div className="flex items-start justify-between">
-          <h3 className="text-xl font-semibold line-clamp-2">{name}</h3>
-          <Badge variant={isDeliverable ? "default" : "secondary"} className="ml-2 text-sm ">
+          <h3 className="text-xl font-semibold line-clamp-2 min-h-[3.5rem]">{name}</h3>
+          <Badge variant={isDeliverable ? "default" : "secondary"} className="ml-2 text-sm">
             {isDeliverable ? "Will Deliver" : "Pickup Only"}
           </Badge>
+        </div>
+        <div className='text-right'>
+          <Badge variant={"outline"}>{room}</Badge>
         </div>
       </CardHeader>
       

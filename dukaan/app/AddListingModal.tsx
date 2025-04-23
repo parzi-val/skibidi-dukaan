@@ -10,6 +10,7 @@ import Image from "next/image";
 import axios from "axios";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import imageCompression from 'browser-image-compression';
 interface AddListingModalProps {
   trigger: any;
   open: any;
@@ -78,8 +79,25 @@ const AddListingModal = ({ trigger, open, onOpenChange }: AddListingModalProps) 
       formData.append('quantity', quantity.toString());
       formData.append('deliverable', willDeliver.toString());
       if (imageFile) {
-        formData.append('image', imageFile);
+        try {
+          const options = {
+            maxSizeMB: 1.3,         
+            maxWidthOrHeight: 1920, 
+            useWebWorker: true,
+          };
+    
+          const compressedFile = await imageCompression(imageFile, options);
+    
+          console.log(`Compressed size: ${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`);
+    
+          formData.append('image', compressedFile);
+        } catch (error:any) {
+          formData.append('image', imageFile);
+        }
       }
+      // if (imageFile) {
+      //   formData.append('image', imageFile);
+      // }
       
       // Make API request
       const response = await axios.post(
@@ -223,7 +241,7 @@ const AddListingModal = ({ trigger, open, onOpenChange }: AddListingModalProps) 
           </div>
           
           <div className="grid gap-2">
-            <Label htmlFor="image">Product Image {'(USE PHOTO LIBRARY ONLY)'}</Label>
+            <Label htmlFor="image">Product Image</Label>
             <Input 
               id="image" 
               type="file" 
